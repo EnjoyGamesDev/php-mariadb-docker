@@ -1,0 +1,56 @@
+version: '3.8'
+
+services: 
+
+  # Configuración del servicio backend
+  backend:
+    build: 
+      context: .
+      dockerfile: php.dockerfile
+    container_name: backend_svc
+    ports: 
+      - 8080:80  # Mapea el puerto 80 del contenedor al puerto 8080 del host
+    volumes: 
+      - ./www/:/var/www/html  # Monta el directorio local './www/' en '/var/www/html' del contenedor
+    depends_on: 
+      - database  # Indica que este servicio depende del servicio 'database'
+    networks: 
+      app_network:
+        aliases: 
+          - backend_host  # Alias para el servicio en la red
+
+  # Configuración del servicio de base de datos
+  database:
+    build: 
+      context: .
+      dockerfile: mariadb.dockerfile
+    container_name: mariadb_svc
+    ports: 
+      - 3306:3306  # Mapea el puerto 3306 del contenedor al puerto 3306 del host
+    environment:
+      MYSQL_DATABASE: "clientes" # Configura el nombre de la base de datos
+      MYSQL_ROOT_PASSWORD: "Custom.2023"  # Configura la contraseña del usuario root
+    volumes: 
+      - ./schemas/:/var/lib/mysql  # Monta el directorio local './schemas/' en '/var/lib/mysql' del contenedor
+      
+      # Monta archivo local 'schemas.sql' en 'docker-entrypoint-initdb.d/schema.sql' del contenedor
+      # el archivo permite inicializar una tabla clientes con las estructura dentro de schemas.slq
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql 
+      
+    networks: 
+      app_network:
+        aliases: 
+          - mariadb_host  # Alias para el servicio en la red
+
+# Definición de volúmenes
+volumes: 
+  www: {}  # Volumen para el servicio backend
+  schemas: {}  # Volumen para el servicio database
+
+# Configuración de la red
+networks: 
+  app_network:
+    name: app_net  # Nombre de la red
+    driver: bridge  # Tipo de driver de red (bridge)
+    ipam:
+      driver: default  # Configuración predeterminada del administrador de direcciones IP
